@@ -16,6 +16,7 @@ object C {
     const val TWITCH = "twitch"
     const val KICK = "kick"
     const val STREAM_SOURCE = "streamSource"
+    const val UI_STREAM_SOURCE = "ui_stream_source"
     const val KICK_CLIENT_ID = "kick_client_id"
     const val KICK_CLIENT_SECRET = "kick_client_secret"
     const val KICK_APP_TOKEN = "kick_app_token"

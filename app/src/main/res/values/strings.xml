@@ -93,6 +93,9 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="search">Search</string>
+    <string name="twitch" translatable="false">Twitch</string>
+    <string name="kick" translatable="false">Kick</string>
+    <string name="stream_source">Stream source</string>
     <string name="chat_replay_unavailable">Chat replay is unavailable</string>
     <string name="video_subscribers_only">This video is only available to subscribers.</string>
     <string name="player_error">Player error, retrying…</string>

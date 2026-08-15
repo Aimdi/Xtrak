@@ -42,6 +42,7 @@ import com.github.andreyasadchy.xtra.ui.search.SearchPagerFragmentDirections
 import com.github.andreyasadchy.xtra.ui.settings.SettingsActivity
 import com.github.andreyasadchy.xtra.ui.top.TopStreamsViewModel.Companion.TopStreamsViewModelFactory
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
 import com.github.andreyasadchy.xtra.util.prefs
@@ -133,6 +134,12 @@ class TopStreamsFragment : PagedListFragment(), Scrollable, StreamsSortDialog.On
             StreamsAdapter(this, { addTag(it) })
         }
         setAdapter(binding.recyclerViewLayout.recyclerView, pagingAdapter)
+        StreamSource.bind(binding.sourceSwitch, requireContext().prefs()) { source ->
+            viewLifecycleOwner.lifecycleScope.launch {
+                pagingAdapter.submitData(PagingData.empty())
+                viewModel.setSource(source)
+            }
+        }
     }
 
     override fun initialize() {

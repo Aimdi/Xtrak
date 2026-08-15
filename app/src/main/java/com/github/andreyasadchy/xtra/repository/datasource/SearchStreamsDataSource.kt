@@ -7,6 +7,7 @@ import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
 import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 
 class SearchStreamsDataSource(
     private val query: String,
@@ -17,6 +18,7 @@ class SearchStreamsDataSource(
     private val kickRepository: KickRepository,
     private val enableIntegrity: Boolean,
     private val networkLibrary: String?,
+    private val streamSource: String? = C.TWITCH,
 ) : PagingSource<Int, Stream>() {
     private var api: String? = null
     private var offset: String? = null
@@ -29,27 +31,32 @@ class SearchStreamsDataSource(
                 nextKey = null
             )
         } else {
-            if (!offset.isNullOrBlank()) {
+            if (StreamSource.includeKick(streamSource)) {
+                try {
+                    LoadResult.Page(
+                        data = kickRepository.searchStreams(query),
+                        prevKey = null,
+                        nextKey = null,
+                    )
+                } catch (e: Exception) {
+                    LoadResult.Error(e)
+                }
+            } else if (!offset.isNullOrBlank()) {
                 try {
                     loadFromApi(params)
                 } catch (e: Exception) {
                     LoadResult.Error(e)
                 }
             } else {
-                val kickStreams = runCatching { kickRepository.searchStreams(query) }.getOrDefault(emptyList())
                 try {
                     api = C.GQL
-                    mergeKick(loadFromApi(params), kickStreams)
+                    loadFromApi(params)
                 } catch (e: Exception) {
                     try {
                         api = C.HELIX
-                        mergeKick(loadFromApi(params), kickStreams)
+                        loadFromApi(params)
                     } catch (e: Exception) {
-                        if (kickStreams.isNotEmpty()) {
-                            LoadResult.Page(data = kickStreams, prevKey = null, nextKey = null)
-                        } else {
-                            LoadResult.Error(e)
-                        }
+                        LoadResult.Error(e)
                     }
                 }
             }
@@ -136,11 +143,6 @@ class SearchStreamsDataSource(
                 (params.key ?: 1) + 1
             } else null
         )
-    }
-
-    private fun mergeKick(result: LoadResult<Int, Stream>, kickStreams: List<Stream>): LoadResult<Int, Stream> {
-        if (kickStreams.isEmpty() || result !is LoadResult.Page) return result
-        return result.copy(data = kickStreams + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Stream>): Int? {

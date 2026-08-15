@@ -28,6 +28,7 @@ import com.github.andreyasadchy.xtra.ui.common.IntegrityDialog
 import com.github.andreyasadchy.xtra.ui.common.PagedListFragment
 import com.github.andreyasadchy.xtra.ui.common.Scrollable
 import com.github.andreyasadchy.xtra.ui.common.Sortable
+import com.github.andreyasadchy.xtra.ui.common.StreamSourceAware
 import com.github.andreyasadchy.xtra.ui.common.StreamsAdapter
 import com.github.andreyasadchy.xtra.ui.common.StreamsCompactAdapter
 import com.github.andreyasadchy.xtra.ui.common.StreamsSortDialog
@@ -41,7 +42,7 @@ import com.github.andreyasadchy.xtra.util.prefs
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class GameStreamsFragment : PagedListFragment(), Scrollable, Sortable, StreamsSortDialog.OnFilter {
+class GameStreamsFragment : PagedListFragment(), Scrollable, Sortable, StreamSourceAware, StreamsSortDialog.OnFilter {
 
     private var _binding: CommonRecyclerViewLayoutBinding? = null
     private val binding get() = _binding!!
@@ -271,6 +272,13 @@ class GameStreamsFragment : PagedListFragment(), Scrollable, Sortable, StreamsSo
             viewLifecycleOwner.lifecycleScope.launch {
                 args.gameId?.let { viewModel.getGameSort(it) }?.let { viewModel.deleteGameSort(it) }
             }
+        }
+    }
+
+    override fun setSource(source: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            pagingAdapter.submitData(PagingData.empty())
+            viewModel.setSource(source)
         }
     }
 

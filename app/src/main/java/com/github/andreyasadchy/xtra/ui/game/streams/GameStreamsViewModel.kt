@@ -25,10 +25,12 @@ import com.github.andreyasadchy.xtra.repository.datasource.GameStreamsDataSource
 import com.github.andreyasadchy.xtra.ui.common.StreamsSortDialog
 import com.github.andreyasadchy.xtra.ui.game.GamePagerFragmentArgs
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.prefs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 
 class GameStreamsViewModel(
@@ -43,6 +45,7 @@ class GameStreamsViewModel(
 
     private val args = GamePagerFragmentArgs.fromSavedStateHandle(savedStateHandle)
     val filter = MutableStateFlow<Filter?>(null)
+    val source = MutableStateFlow(StreamSource.current(applicationContext.prefs()))
     val sortText = MutableStateFlow<CharSequence?>(null)
     val filtersText = MutableStateFlow<CharSequence?>(null)
 
@@ -54,7 +57,7 @@ class GameStreamsViewModel(
         get() = filter.value?.languages ?: emptyArray()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val flow = filter.flatMapLatest {
+    val flow = combine(filter, source) { filter, source -> filter to source }.flatMapLatest { (_, source) ->
         Pager(
             if (applicationContext.prefs().getString(C.COMPACT_STREAMS, "disabled") == "all") {
                 PagingConfig(pageSize = 30, prefetchDistance = 10, initialLoadSize = 30)
@@ -90,6 +93,7 @@ class GameStreamsViewModel(
                 kickRepository = kickRepository,
                 enableIntegrity = applicationContext.prefs().getBoolean(C.ENABLE_INTEGRITY, false),
                 networkLibrary = applicationContext.prefs().getString(C.NETWORK_LIBRARY, C.OKHTTP),
+                streamSource = source,
             )
         }.flow
     }.cachedIn(viewModelScope)
@@ -112,6 +116,12 @@ class GameStreamsViewModel(
 
     fun setFilter(sort: String?, tags: Array<String>?, languages: Array<String>?) {
         filter.value = Filter(sort, tags, languages)
+    }
+
+    fun setSource(value: String) {
+        if (source.value != value) {
+            source.value = value
+        }
     }
 
     class Filter(

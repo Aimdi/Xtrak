@@ -8,6 +8,7 @@ import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
 import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 
 class SearchGamesDataSource(
     private val query: String,
@@ -18,6 +19,7 @@ class SearchGamesDataSource(
     private val kickRepository: KickRepository,
     private val enableIntegrity: Boolean,
     private val networkLibrary: String?,
+    private val streamSource: String? = C.TWITCH,
 ) : PagingSource<Int, Game>() {
     private var api: String? = null
     private var offset: String? = null
@@ -30,31 +32,36 @@ class SearchGamesDataSource(
                 nextKey = null
             )
         } else {
-            if (!offset.isNullOrBlank()) {
+            if (StreamSource.includeKick(streamSource)) {
+                try {
+                    LoadResult.Page(
+                        data = kickRepository.searchGames(query),
+                        prevKey = null,
+                        nextKey = null,
+                    )
+                } catch (e: Exception) {
+                    LoadResult.Error(e)
+                }
+            } else if (!offset.isNullOrBlank()) {
                 try {
                     loadFromApi(params)
                 } catch (e: Exception) {
                     LoadResult.Error(e)
                 }
             } else {
-                val kickGames = runCatching { kickRepository.searchGames(query) }.getOrDefault(emptyList())
                 try {
                     api = C.GQL
-                    mergeKick(loadFromApi(params), kickGames)
+                    loadFromApi(params)
                 } catch (e: Exception) {
                     try {
                         api = C.GQL_PERSISTED_QUERY
-                        mergeKick(loadFromApi(params), kickGames)
+                        loadFromApi(params)
                     } catch (e: Exception) {
                         try {
                             api = C.HELIX
-                            mergeKick(loadFromApi(params), kickGames)
+                            loadFromApi(params)
                         } catch (e: Exception) {
-                            if (kickGames.isNotEmpty()) {
-                                LoadResult.Page(data = kickGames, prevKey = null, nextKey = null)
-                            } else {
-                                LoadResult.Error(e)
-                            }
+                            LoadResult.Error(e)
                         }
                     }
                 }
@@ -162,11 +169,6 @@ class SearchGamesDataSource(
                 (params.key ?: 1) + 1
             } else null
         )
-    }
-
-    private fun mergeKick(result: LoadResult<Int, Game>, kickGames: List<Game>): LoadResult<Int, Game> {
-        if (kickGames.isEmpty() || result !is LoadResult.Page) return result
-        return result.copy(data = kickGames + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Game>): Int? {
