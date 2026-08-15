@@ -94,6 +94,7 @@ class KickPusherChatWebSocket(
                 val payload = when (rawData) {
                     is JSONObject -> rawData.toString()
                     is String -> rawData
+                    null -> null
                     else -> null
                 }
                 when (event) {
