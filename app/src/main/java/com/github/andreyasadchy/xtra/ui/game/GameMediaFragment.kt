@@ -43,6 +43,7 @@ import com.github.andreyasadchy.xtra.ui.common.FragmentHost
 import com.github.andreyasadchy.xtra.ui.common.IntegrityDialog
 import com.github.andreyasadchy.xtra.ui.common.Scrollable
 import com.github.andreyasadchy.xtra.ui.common.Sortable
+import com.github.andreyasadchy.xtra.ui.common.StreamSourceAware
 import com.github.andreyasadchy.xtra.ui.game.GamePagerViewModel.Companion.GamePagerViewModelFactory
 import com.github.andreyasadchy.xtra.ui.game.clips.GameClipsFragment
 import com.github.andreyasadchy.xtra.ui.game.streams.GameStreamsFragment
@@ -53,6 +54,7 @@ import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import com.github.andreyasadchy.xtra.ui.search.SearchPagerFragmentDirections
 import com.github.andreyasadchy.xtra.ui.settings.SettingsActivity
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
 import com.github.andreyasadchy.xtra.util.prefs
@@ -275,6 +277,11 @@ class GameMediaFragment : BaseNetworkFragment(), Scrollable, FragmentHost, Integ
                 }
                 if (previousItem <= tabs.lastIndex) {
                     setText(adapter.getItem(previousItem).toString(), false)
+                }
+            }
+            StreamSource.bind(sourceSwitch, requireContext().prefs()) { source ->
+                childFragmentManager.fragments.forEach { fragment ->
+                    (fragment as? StreamSourceAware)?.setSource(source)
                 }
             }
             if (!requireContext().prefs().getBoolean(C.UI_THEME_APPBAR_LIFT, true)) {

@@ -17,11 +17,13 @@ import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.repository.RecentSearchesRepository
 import com.github.andreyasadchy.xtra.repository.datasource.SearchStreamsDataSource
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.prefs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
@@ -35,10 +37,11 @@ class StreamSearchViewModel(
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query
+    val source = MutableStateFlow(StreamSource.current(applicationContext.prefs()))
     val recentSearches = recentSearchesRepository.getAll(RecentSearch.TYPE_STREAM)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val flow = _query.flatMapLatest { query ->
+    val flow = combine(_query, source) { query, source -> query to source }.flatMapLatest { (query, source) ->
         Pager(
             if (applicationContext.prefs().getString(C.COMPACT_STREAMS, "disabled") == "all") {
                 PagingConfig(pageSize = 30, prefetchDistance = 10, initialLoadSize = 30)
@@ -55,6 +58,7 @@ class StreamSearchViewModel(
                 kickRepository = kickRepository,
                 enableIntegrity = applicationContext.prefs().getBoolean(C.ENABLE_INTEGRITY, false),
                 networkLibrary = applicationContext.prefs().getString(C.NETWORK_LIBRARY, C.OKHTTP),
+                streamSource = source,
             )
         }.flow
     }.cachedIn(viewModelScope)
@@ -62,6 +66,12 @@ class StreamSearchViewModel(
     fun setQuery(newQuery: String) {
         if (_query.value != newQuery) {
             _query.value = newQuery
+        }
+    }
+
+    fun setSource(value: String) {
+        if (source.value != value) {
+            source.value = value
         }
     }
 

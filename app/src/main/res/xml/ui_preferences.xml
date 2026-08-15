@@ -85,6 +85,16 @@
         app:singleLineTitle="false" />
 
     <ListPreference
+        android:defaultValue="twitch"
+        android:entries="@array/streamSourceEntries"
+        android:entryValues="@array/streamSourceValues"
+        android:key="ui_stream_source"
+        android:summary="%s"
+        android:title="@string/stream_source"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
+    <ListPreference
         android:defaultValue="disabled"
         android:entries="@array/compactStreamsEntries"
         android:entryValues="@array/compactStreamsValues"

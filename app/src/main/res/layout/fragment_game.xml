@@ -152,6 +152,10 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <include
+                    android:id="@+id/sourceSwitch"
+                    layout="@layout/source_switch" />
+
+                <include
                     android:id="@+id/sortBar"
                     layout="@layout/sort_bar" />
 

@@ -16,10 +16,12 @@ import com.github.andreyasadchy.xtra.repository.HelixRepository
 import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.repository.datasource.GamesDataSource
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.StreamSource
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.prefs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 
 class GamesViewModel(
@@ -30,13 +32,14 @@ class GamesViewModel(
 ) : ViewModel() {
 
     val filter = MutableStateFlow<Filter?>(null)
+    val source = MutableStateFlow(StreamSource.current(applicationContext.prefs()))
     val filtersText = MutableStateFlow<CharSequence?>(null)
 
     val tags: Array<Tag>
         get() = filter.value?.tags ?: emptyArray()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val flow = filter.flatMapLatest {
+    val flow = combine(filter, source) { filter, source -> filter to source }.flatMapLatest { (_, source) ->
         Pager(
             PagingConfig(pageSize = 30, prefetchDistance = 10, initialLoadSize = 30)
         ) {
@@ -49,12 +52,19 @@ class GamesViewModel(
                 kickRepository = kickRepository,
                 enableIntegrity = applicationContext.prefs().getBoolean(C.ENABLE_INTEGRITY, false),
                 networkLibrary = applicationContext.prefs().getString(C.NETWORK_LIBRARY, C.OKHTTP),
+                streamSource = source,
             )
         }.flow
     }.cachedIn(viewModelScope)
 
     fun setFilter(tags: Array<Tag>?) {
         filter.value = Filter(tags)
+    }
+
+    fun setSource(value: String) {
+        if (source.value != value) {
+            source.value = value
+        }
     }
 
     class Filter(

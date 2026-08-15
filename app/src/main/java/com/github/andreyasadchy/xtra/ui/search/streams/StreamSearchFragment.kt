@@ -125,6 +125,10 @@ class StreamSearchFragment : PagedListFragment(), Searchable {
         }
     }
 
+    override fun setSource(source: String) {
+        viewModel.setSource(source)
+    }
+
     override fun onNetworkRestored() {
         pagingAdapter.retry()
     }
