@@ -25,6 +25,7 @@ import com.github.andreyasadchy.xtra.model.ui.Tag
 import com.github.andreyasadchy.xtra.ui.game.GameMediaFragmentDirections
 import com.github.andreyasadchy.xtra.ui.game.GamePagerFragmentDirections
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.prefs
 
@@ -90,7 +91,7 @@ class GamesAdapter(
                     }
                     if (item.name != null) {
                         gameName.visibility = View.VISIBLE
-                        gameName.text = item.name
+                        gameName.text = if (item.isKick) KickApiHelper.labeledName(item.name) else item.name
                     } else {
                         gameName.visibility = View.GONE
                     }

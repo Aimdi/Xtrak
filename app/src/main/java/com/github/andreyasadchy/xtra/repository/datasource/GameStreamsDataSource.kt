@@ -8,7 +8,6 @@ import com.github.andreyasadchy.xtra.model.ui.Stream
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
 import com.github.andreyasadchy.xtra.repository.KickRepository
-import com.github.andreyasadchy.xtra.repository.KickWebsiteSearchMapper
 import com.github.andreyasadchy.xtra.util.C
 
 class GameStreamsDataSource(
@@ -41,8 +40,7 @@ class GameStreamsDataSource(
         } else {
             val kickStreams = runCatching {
                 val subcategory = gameSlug?.takeIf { it.isNotBlank() } ?: gameName
-                kickRepository.getLivestreams(page = 1, limit = params.loadSize, subcategory = subcategory)
-                    .data.map(KickWebsiteSearchMapper::toStream)
+                kickRepository.loadTopStreams(page = 1, limit = params.loadSize, subcategory = subcategory)
             }.getOrDefault(emptyList())
             try {
                 api = C.GQL

@@ -30,6 +30,7 @@ import com.github.andreyasadchy.xtra.ui.game.GameMediaFragmentDirections
 import com.github.andreyasadchy.xtra.ui.game.GamePagerFragmentDirections
 import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.prefs
 import kotlin.time.Clock
@@ -108,7 +109,7 @@ class StreamsAdapter(
                             }
                         } else {
                             item.channelName
-                        }
+                        }.let { name -> if (item.isKick) KickApiHelper.labeledName(name) else name }
                         username.setOnClickListener(channelListener)
                     } else {
                         username.visibility = View.GONE

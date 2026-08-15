@@ -154,6 +154,10 @@
     <string name="player_pause">Show pause button on livestreams</string>
     <string name="token_random_deviceid">Random device ID</string>
     <string name="api_helix_client_id">Helix client ID</string>
+    <string name="api_kick_category">Kick</string>
+    <string name="api_kick_category_summary">Kick.com lists use the website APIs first. If those are blocked, add a Kick developer app client ID and secret as a fallback.</string>
+    <string name="api_kick_client_id">Kick client ID</string>
+    <string name="api_kick_client_secret">Kick client secret</string>
     <string name="api_gql_client_id">GQL client ID</string>
     <string name="playback_speed">Playback speed</string>
     <string name="quality">Quality</string>

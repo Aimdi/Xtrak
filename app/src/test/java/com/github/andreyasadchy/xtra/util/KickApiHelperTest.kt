@@ -61,4 +61,46 @@ class KickApiHelperTest {
         assertTrue(KickApiHelper.isKickCdnUrl("https://images.kick.com/user.png"))
         assertFalse(KickApiHelper.isKickCdnUrl("https://static-cdn.jtvnw.net/user.png"))
     }
+
+    @Test
+    fun isBlockedBody_detectsCloudflarePolicy() {
+        assertTrue(KickApiHelper.isBlockedBody("""{"error":"Request blocked by security policy."}"""))
+        assertFalse(KickApiHelper.isBlockedBody("""{"data":[]}"""))
+    }
+
+    @Test
+    fun labeledName_appendsKick() {
+        assertEquals("xQc · Kick", KickApiHelper.labeledName("xQc"))
+        assertNull(KickApiHelper.labeledName(null))
+    }
+
+    @Test
+    fun parseSetCookie_readsNameAndValue() {
+        val cookie = KickApiHelper.parseSetCookie("XSRF-TOKEN=abc%3D%3D; Path=/; Secure; HttpOnly")
+        assertEquals("XSRF-TOKEN", cookie?.first)
+        assertEquals("abc%3D%3D", cookie?.second)
+        assertNull(KickApiHelper.parseSetCookie("Path=/"))
+    }
+
+    @Test
+    fun xsrfToken_urlDecodesCookie() {
+        val header = "kick_session=one; XSRF-TOKEN=abc%3D%3D; other=two"
+        assertEquals("abc==", KickApiHelper.xsrfToken(header))
+        assertEquals("X-XSRF-TOKEN", KickApiHelper.webHeaders(header).keys.single { it.equals("X-XSRF-TOKEN", true) })
+        assertEquals("abc==", KickApiHelper.webHeaders(header)["X-XSRF-TOKEN"])
+    }
+
+    @Test
+    fun mergeCookieHeader_prefersLaterValues() {
+        assertEquals(
+            "a=1; b=3",
+            KickApiHelper.mergeCookieHeader("a=1; b=2", "b=3"),
+        )
+    }
+
+    @Test
+    fun setCookieValues_isCaseInsensitive() {
+        val headers = mapOf("set-cookie" to listOf("XSRF-TOKEN=token", "kick_session=sess"))
+        assertEquals(listOf("XSRF-TOKEN=token", "kick_session=sess"), KickApiHelper.setCookieValues(headers))
+    }
 }

@@ -35,6 +35,29 @@
         app:iconSpaceReserved="false"
         app:singleLineTitle="false" />
 
+    <Preference
+        android:key="kick_api_help"
+        android:selectable="false"
+        android:summary="@string/api_kick_category_summary"
+        android:title="@string/api_kick_category"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
+    <EditTextPreference
+        android:key="kick_client_id"
+        android:title="@string/api_kick_client_id"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
+    <EditTextPreference
+        android:inputType="textPassword"
+        android:key="kick_client_secret"
+        android:title="@string/api_kick_client_secret"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false"
+        app:singleLineTitle="false" />
+
     <PreferenceCategory
         android:title="@string/api_current_login"
         app:iconSpaceReserved="false" />

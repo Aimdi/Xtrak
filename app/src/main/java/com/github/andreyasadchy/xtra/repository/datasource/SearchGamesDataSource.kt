@@ -166,9 +166,7 @@ class SearchGamesDataSource(
 
     private fun mergeKick(result: LoadResult<Int, Game>, kickGames: List<Game>): LoadResult<Int, Game> {
         if (kickGames.isEmpty() || result !is LoadResult.Page) return result
-        val existing = result.data.mapNotNull { it.slug?.lowercase() ?: it.name?.lowercase() }.toSet()
-        val extra = kickGames.filter { (it.slug?.lowercase() ?: it.name?.lowercase()) !in existing }
-        return result.copy(data = extra + result.data)
+        return result.copy(data = kickGames + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Game>): Int? {

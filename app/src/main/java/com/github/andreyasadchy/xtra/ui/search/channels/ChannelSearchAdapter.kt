@@ -100,7 +100,7 @@ class ChannelSearchAdapter(
                             }
                         } else {
                             item.name
-                        }
+                        }.let { name -> if (item.isKick) KickApiHelper.labeledName(name) else name }
                     } else {
                         userName.visibility = View.GONE
                     }

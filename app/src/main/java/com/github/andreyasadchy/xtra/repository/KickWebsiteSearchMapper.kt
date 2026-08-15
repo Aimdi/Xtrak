@@ -3,6 +3,9 @@ package com.github.andreyasadchy.xtra.repository
 import com.github.andreyasadchy.xtra.model.kick.KickChannelLivestream
 import com.github.andreyasadchy.xtra.model.kick.KickChannelResponse
 import com.github.andreyasadchy.xtra.model.kick.KickLivestream
+import com.github.andreyasadchy.xtra.model.kick.KickOfficialCategory
+import com.github.andreyasadchy.xtra.model.kick.KickOfficialChannel
+import com.github.andreyasadchy.xtra.model.kick.KickOfficialLivestream
 import com.github.andreyasadchy.xtra.model.kick.KickSearchChannel
 import com.github.andreyasadchy.xtra.model.kick.KickSubcategory
 import com.github.andreyasadchy.xtra.model.ui.Game
@@ -105,6 +108,63 @@ internal object KickWebsiteSearchMapper {
             thumbnailURL = livestream?.thumbnail?.imageUrl,
             createdAt = normalizeDate(livestream?.createdAt),
             viewerCount = livestream?.viewerCount,
+            source = C.KICK,
+        )
+    }
+
+    fun toStream(item: KickOfficialLivestream): Stream {
+        return Stream(
+            id = KickApiHelper.kickStreamId(item.channelId?.toString() ?: item.slug),
+            channelId = item.broadcasterUserId?.toString() ?: item.channelId?.toString(),
+            channelLogin = item.slug,
+            channelName = item.slug,
+            channelImageURL = item.profilePicture,
+            gameId = item.category?.id?.toString(),
+            gameName = item.category?.name,
+            title = item.streamTitle,
+            thumbnailURL = item.thumbnail,
+            createdAt = normalizeDate(item.startedAt),
+            viewerCount = item.viewerCount,
+            tags = item.customTags,
+            source = C.KICK,
+        )
+    }
+
+    fun toStream(channel: KickOfficialChannel): Stream {
+        return Stream(
+            id = KickApiHelper.kickStreamId(channel.broadcasterUserId?.toString() ?: channel.slug),
+            channelId = channel.broadcasterUserId?.toString(),
+            channelLogin = channel.slug,
+            channelName = channel.slug,
+            channelImageURL = channel.thumbnail,
+            gameId = channel.category?.id?.toString(),
+            gameName = channel.category?.name,
+            title = channel.streamTitle,
+            thumbnailURL = channel.stream?.thumbnail ?: channel.thumbnail,
+            createdAt = normalizeDate(channel.stream?.startTime),
+            viewerCount = channel.stream?.viewerCount,
+            source = C.KICK,
+        )
+    }
+
+    fun toUser(channel: KickOfficialChannel): User {
+        return User(
+            id = channel.broadcasterUserId?.toString(),
+            login = channel.slug,
+            name = channel.slug,
+            profileImageURL = channel.thumbnail,
+            isLive = channel.stream?.isLive == true,
+            source = C.KICK,
+        )
+    }
+
+    fun toGame(item: KickOfficialCategory): Game {
+        return Game(
+            id = item.id?.toString(),
+            slug = item.name?.lowercase(Locale.ROOT)?.replace(' ', '-'),
+            name = item.name,
+            boxArtURL = item.thumbnail,
+            viewerCount = item.viewerCount,
             source = C.KICK,
         )
     }

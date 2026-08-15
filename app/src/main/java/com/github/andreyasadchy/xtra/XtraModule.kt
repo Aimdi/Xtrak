@@ -47,6 +47,8 @@ class XtraModule(application: Application) {
                 addQuicHint("cdn.7tv.app", 443, 443)
                 addQuicHint("api.betterttv.net", 443, 443)
                 addQuicHint("kick.com", 443, 443)
+                addQuicHint("api.kick.com", 443, 443)
+                addQuicHint("id.kick.com", 443, 443)
                 addQuicHint("ws-us2.pusher.com", 443, 443)
             }.build()
         } else {
@@ -67,6 +69,8 @@ class XtraModule(application: Application) {
                 addQuicHint("cdn.7tv.app", 443, 443)
                 addQuicHint("api.betterttv.net", 443, 443)
                 addQuicHint("kick.com", 443, 443)
+                addQuicHint("api.kick.com", 443, 443)
+                addQuicHint("id.kick.com", 443, 443)
                 addQuicHint("ws-us2.pusher.com", 443, 443)
             }.build().also {
                 if (BuildConfig.DEBUG) {
@@ -330,7 +334,7 @@ class XtraModule(application: Application) {
     }
 
     val kickRepository by lazy {
-        KickRepository(okHttpClient, json)
+        KickRepository(application, httpEngine, cronetEngine, cronetExecutor, okHttpClient, json)
     }
 
     val localChannelFollowsRepository by lazy {
