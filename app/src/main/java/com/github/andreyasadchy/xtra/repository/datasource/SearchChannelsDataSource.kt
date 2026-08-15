@@ -156,9 +156,7 @@ class SearchChannelsDataSource(
 
     private fun mergeKick(result: LoadResult<Int, User>, kickUsers: List<User>): LoadResult<Int, User> {
         if (kickUsers.isEmpty() || result !is LoadResult.Page) return result
-        val existing = result.data.mapNotNull { it.login?.lowercase() }.toSet()
-        val extra = kickUsers.filter { it.login?.lowercase() !in existing }
-        return result.copy(data = extra + result.data)
+        return result.copy(data = kickUsers + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, User>): Int? {

@@ -140,9 +140,7 @@ class SearchStreamsDataSource(
 
     private fun mergeKick(result: LoadResult<Int, Stream>, kickStreams: List<Stream>): LoadResult<Int, Stream> {
         if (kickStreams.isEmpty() || result !is LoadResult.Page) return result
-        val existing = result.data.mapNotNull { it.channelLogin?.lowercase() }.toSet()
-        val extra = kickStreams.filter { it.channelLogin?.lowercase() !in existing }
-        return result.copy(data = extra + result.data)
+        return result.copy(data = kickStreams + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Stream>): Int? {

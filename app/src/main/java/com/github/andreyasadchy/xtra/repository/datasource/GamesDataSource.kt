@@ -7,7 +7,6 @@ import com.github.andreyasadchy.xtra.model.ui.Tag
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
 import com.github.andreyasadchy.xtra.repository.KickRepository
-import com.github.andreyasadchy.xtra.repository.KickWebsiteSearchMapper
 import com.github.andreyasadchy.xtra.util.C
 
 class GamesDataSource(
@@ -32,7 +31,7 @@ class GamesDataSource(
             }
         } else {
             val kickGames = runCatching {
-                kickRepository.getSubcategories(page = 1, limit = params.loadSize).data.map(KickWebsiteSearchMapper::toGame)
+                kickRepository.loadTopGames(page = 1, limit = params.loadSize)
             }.getOrDefault(emptyList())
             try {
                 api = C.GQL
@@ -163,9 +162,7 @@ class GamesDataSource(
 
     private fun mergeKick(result: LoadResult<Int, Game>, kickGames: List<Game>): LoadResult<Int, Game> {
         if (kickGames.isEmpty() || result !is LoadResult.Page) return result
-        val existing = result.data.mapNotNull { it.slug?.lowercase() }.toSet()
-        val extra = kickGames.filter { it.slug?.lowercase() !in existing }
-        return result.copy(data = extra + result.data)
+        return result.copy(data = kickGames + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Game>): Int? {

@@ -223,3 +223,93 @@ class KickMessageBadge(
     val text: String? = null,
     val count: Int? = null,
 )
+
+@Serializable
+class KickOfficialListResponse<T>(
+    val data: List<T> = emptyList(),
+    val message: String? = null,
+)
+
+@Serializable
+class KickOfficialLivestream(
+    @SerialName("broadcaster_user_id")
+    val broadcasterUserId: Long? = null,
+    val category: KickOfficialCategory? = null,
+    @SerialName("channel_id")
+    val channelId: Long? = null,
+    val language: String? = null,
+    @SerialName("profile_picture")
+    val profilePicture: String? = null,
+    val slug: String? = null,
+    @SerialName("started_at")
+    val startedAt: String? = null,
+    @SerialName("stream_title")
+    val streamTitle: String? = null,
+    val thumbnail: String? = null,
+    @SerialName("viewer_count")
+    val viewerCount: Int? = null,
+    @SerialName("custom_tags")
+    val customTags: List<String> = emptyList(),
+)
+
+@Serializable
+class KickOfficialCategory(
+    val id: Long? = null,
+    val name: String? = null,
+    val thumbnail: String? = null,
+    @SerialName("viewer_count")
+    val viewerCount: Int? = null,
+)
+
+@Serializable
+class KickOfficialChannel(
+    @SerialName("broadcaster_user_id")
+    val broadcasterUserId: Long? = null,
+    val slug: String? = null,
+    val stream: KickOfficialChannelStream? = null,
+    @SerialName("stream_title")
+    val streamTitle: String? = null,
+    val thumbnail: String? = null,
+    val category: KickOfficialCategory? = null,
+)
+
+@Serializable
+class KickOfficialChannelStream(
+    @SerialName("is_live")
+    val isLive: Boolean? = null,
+    val thumbnail: String? = null,
+    val url: String? = null,
+    @SerialName("viewer_count")
+    val viewerCount: Int? = null,
+    @SerialName("start_time")
+    val startTime: String? = null,
+)
+
+@Serializable
+class KickAppTokenResponse(
+    @SerialName("access_token")
+    val accessToken: String? = null,
+    @SerialName("expires_in")
+    val expiresIn: Long? = null,
+    @SerialName("token_type")
+    val tokenType: String? = null,
+)
+
+@Serializable
+class KickFeaturedLivestreamsResponse(
+    val data: List<KickLivestream> = emptyList(),
+    val featured: List<KickLivestream> = emptyList(),
+    val livestreams: List<KickLivestream> = emptyList(),
+) {
+    val items: List<KickLivestream>
+        get() = data.ifEmpty { featured.ifEmpty { livestreams } }
+}
+
+@Serializable
+class KickCategoriesTopResponse(
+    val data: List<KickSubcategory> = emptyList(),
+    val categories: List<KickSubcategory> = emptyList(),
+) {
+    val items: List<KickSubcategory>
+        get() = data.ifEmpty { categories }
+}
