@@ -50,6 +50,8 @@
                 <data android:scheme="https" />
                 <data android:host="*.twitch.tv" />
                 <data android:host="twitch.tv" />
+                <data android:host="kick.com" />
+                <data android:host="*.kick.com" />
             </intent-filter>
         </activity>
         <activity android:name=".ui.settings.SettingsActivity" />

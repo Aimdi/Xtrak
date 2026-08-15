@@ -62,6 +62,7 @@ import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import com.github.andreyasadchy.xtra.ui.search.SearchPagerFragmentDirections
 import com.github.andreyasadchy.xtra.ui.settings.SettingsActivity
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
 import com.github.andreyasadchy.xtra.util.prefs
@@ -122,6 +123,7 @@ class ChannelPagerFragment : BaseNetworkFragment(), Scrollable, FragmentHost, In
                             channelLogin = args.channelLogin,
                             channelName = args.channelName,
                             channelImageURL = args.channelImage,
+                            source = if (KickApiHelper.isKickSource(null, args.streamId)) C.KICK else C.TWITCH,
                         )
                     )
                 }
@@ -289,7 +291,14 @@ class ChannelPagerFragment : BaseNetworkFragment(), Scrollable, FragmentHost, In
                     R.id.share -> {
                         startActivity(Intent.createChooser(Intent().apply {
                             action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, "https://twitch.tv/${args.channelLogin}")
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                if (viewModel.user.value?.isKick == true || viewModel.stream.value?.isKick == true) {
+                                    KickApiHelper.channelShareUrl(args.channelLogin.orEmpty())
+                                } else {
+                                    "https://twitch.tv/${args.channelLogin}"
+                                }
+                            )
                             args.channelName?.let {
                                 putExtra(Intent.EXTRA_TITLE, it)
                             }

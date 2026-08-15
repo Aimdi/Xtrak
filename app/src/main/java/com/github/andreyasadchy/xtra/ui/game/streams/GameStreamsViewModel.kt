@@ -19,6 +19,7 @@ import com.github.andreyasadchy.xtra.model.ui.SavedFilter
 import com.github.andreyasadchy.xtra.repository.GameSortRepository
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.repository.SavedFiltersRepository
 import com.github.andreyasadchy.xtra.repository.datasource.GameStreamsDataSource
 import com.github.andreyasadchy.xtra.ui.common.StreamsSortDialog
@@ -36,6 +37,7 @@ class GameStreamsViewModel(
     private val savedFiltersRepository: SavedFiltersRepository,
     private val graphQLRepository: GraphQLRepository,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -85,6 +87,7 @@ class GameStreamsViewModel(
                 graphQLRepository = graphQLRepository,
                 helixHeaders = TwitchApiHelper.getHelixHeaders(applicationContext),
                 helixRepository = helixRepository,
+                kickRepository = kickRepository,
                 enableIntegrity = applicationContext.prefs().getBoolean(C.ENABLE_INTEGRITY, false),
                 networkLibrary = applicationContext.prefs().getString(C.NETWORK_LIBRARY, C.OKHTTP),
             )
@@ -123,7 +126,7 @@ class GameStreamsViewModel(
                 val savedStateHandle = createSavedStateHandle()
                 val application = (this[APPLICATION_KEY] as XtraApp)
                 val xtraModule = application.xtraModule
-                GameStreamsViewModel(application.applicationContext, xtraModule.gameSortRepository, xtraModule.savedFiltersRepository, xtraModule.graphQLRepository, xtraModule.helixRepository, savedStateHandle)
+                GameStreamsViewModel(application.applicationContext, xtraModule.gameSortRepository, xtraModule.savedFiltersRepository, xtraModule.graphQLRepository, xtraModule.helixRepository, xtraModule.kickRepository, savedStateHandle)
             }
         }
     }

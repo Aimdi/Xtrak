@@ -1,8 +1,10 @@
-# Xtra for Twitch
+# Xtrak
 
 <img src="https://github.com/AndreyAsadchy/Xtra/blob/197ba90cac879abd2a5645393ce361847f12fa0b/app/src/main/ic_launcher-web.png" align="left" width="100"/>
 
-Xtra is a Twitch player and browser for Android.
+Xtrak is a Twitch and Kick player and browser for Android, based on [crackededed/Xtra](https://github.com/crackededed/Xtra) `latest`.
+
+Kick support uses Kick's public website APIs for search, livestreams, HLS playback, and Pusher chat. Twitch features from upstream Xtra are unchanged.
 
 </br>
 </br>

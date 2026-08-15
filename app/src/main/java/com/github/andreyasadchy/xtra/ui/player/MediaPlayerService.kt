@@ -44,6 +44,7 @@ import com.github.andreyasadchy.xtra.model.VideoQuality
 import com.github.andreyasadchy.xtra.model.ui.Video
 import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.MediaButtonReceiver
 import com.github.andreyasadchy.xtra.util.NetworkUtils
 import com.github.andreyasadchy.xtra.util.NetworkUtils.executeAsync
@@ -517,27 +518,33 @@ class MediaPlayerService : BasePlaybackService() {
                 } else {
                     useCustomProxy = false
                     val url = try {
-                        xtraModule.playerRepository.loadStreamPlaylistUrl(
-                            context = this,
-                            networkLibrary = prefs().getString(C.NETWORK_LIBRARY, "OkHttp"),
-                            gqlHeaders = TwitchApiHelper.getGQLHeaders(this@MediaPlayerService, prefs().getBoolean(C.TOKEN_INCLUDE_TOKEN_STREAM, true)),
-                            channelLogin = channelLogin,
-                            randomDeviceId = prefs().getBoolean(C.TOKEN_RANDOM_DEVICE_ID, true),
-                            xDeviceId = prefs().getString(C.TOKEN_X_DEVICE_ID, "twitch-web-wall-mason"),
-                            playerType = prefs().getString(C.TOKEN_PLAYER_TYPE, "site"),
-                            supportedCodecs = prefs().getString(C.TOKEN_SUPPORTED_CODECS, "av1,h265,h264"),
-                            proxyPlaybackAccessToken = prefs().getBoolean(C.PROXY_PLAYBACK_ACCESS_TOKEN, false),
-                            proxyHost = prefs().getString(C.PROXY_HOST, null),
-                            proxyPort = prefs().getString(C.PROXY_PORT, null)?.toIntOrNull(),
-                            proxyUser = prefs().getString(C.PROXY_USER, null),
-                            proxyPassword = prefs().getString(C.PROXY_PASSWORD, null),
-                            enableIntegrity = prefs().getBoolean(C.ENABLE_INTEGRITY, false)
-                        )
+                        if (KickApiHelper.isKickSource(null, streamId)) {
+                            xtraModule.kickRepository.getPlayableUrl(channelLogin)
+                        } else {
+                            xtraModule.playerRepository.loadStreamPlaylistUrl(
+                                context = this,
+                                networkLibrary = prefs().getString(C.NETWORK_LIBRARY, "OkHttp"),
+                                gqlHeaders = TwitchApiHelper.getGQLHeaders(this@MediaPlayerService, prefs().getBoolean(C.TOKEN_INCLUDE_TOKEN_STREAM, true)),
+                                channelLogin = channelLogin,
+                                randomDeviceId = prefs().getBoolean(C.TOKEN_RANDOM_DEVICE_ID, true),
+                                xDeviceId = prefs().getString(C.TOKEN_X_DEVICE_ID, "twitch-web-wall-mason"),
+                                playerType = prefs().getString(C.TOKEN_PLAYER_TYPE, "site"),
+                                supportedCodecs = prefs().getString(C.TOKEN_SUPPORTED_CODECS, "av1,h265,h264"),
+                                proxyPlaybackAccessToken = prefs().getBoolean(C.PROXY_PLAYBACK_ACCESS_TOKEN, false),
+                                proxyHost = prefs().getString(C.PROXY_HOST, null),
+                                proxyPort = prefs().getString(C.PROXY_PORT, null)?.toIntOrNull(),
+                                proxyUser = prefs().getString(C.PROXY_USER, null),
+                                proxyPassword = prefs().getString(C.PROXY_PASSWORD, null),
+                                enableIntegrity = prefs().getBoolean(C.ENABLE_INTEGRITY, false)
+                            )
+                        }
                     } catch (e: Exception) {
                         if (e.message == C.FAILED_INTEGRITY_CHECK) {
                             integrity.emit("refreshStream")
+                            null
+                        } else {
+                            runCatching { xtraModule.kickRepository.getPlayableUrl(channelLogin) }.getOrNull()
                         }
-                        null
                     }
                     playlistUrl = url
                 }

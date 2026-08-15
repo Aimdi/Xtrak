@@ -77,6 +77,7 @@ import com.github.andreyasadchy.xtra.ui.game.GamePagerFragmentDirections
 import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import com.github.andreyasadchy.xtra.ui.player.Media3PlayerViewModel.Companion.Media3PlayerViewModelFactory
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
 import com.github.andreyasadchy.xtra.util.isKeyboardShown
@@ -1116,7 +1117,8 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
                         requireArguments().getString(KEY_CHANNEL_ID),
                         requireArguments().getString(KEY_CHANNEL_LOGIN),
                         requireArguments().getString(KEY_CHANNEL_NAME),
-                        requireArguments().getString(KEY_STREAM_ID)
+                        requireArguments().getString(KEY_STREAM_ID),
+                        requireArguments().getString(KEY_STREAM_SOURCE),
                     )
                     VIDEO -> ChatFragment.newInstance(
                         requireArguments().getString(KEY_CHANNEL_ID),
@@ -1642,7 +1644,14 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
                 requireArguments().getString(KEY_CHANNEL_LOGIN)?.let { channelLogin ->
                     startActivity(Intent.createChooser(Intent().apply {
                         action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, "https://twitch.tv/${channelLogin}")
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            if (KickApiHelper.isKickSource(requireArguments().getString(KEY_STREAM_SOURCE), requireArguments().getString(KEY_STREAM_ID))) {
+                                KickApiHelper.channelShareUrl(channelLogin)
+                            } else {
+                                "https://twitch.tv/${channelLogin}"
+                            }
+                        )
                         requireArguments().getString(KEY_CHANNEL_NAME)?.let {
                             putExtra(Intent.EXTRA_TITLE, it)
                         }
@@ -2045,6 +2054,8 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
                     helixHeaders = TwitchApiHelper.getHelixHeaders(requireContext()),
                     gqlHeaders = TwitchApiHelper.getGQLHeaders(requireContext()),
                     enableIntegrity = requireContext().prefs().getBoolean(C.ENABLE_INTEGRITY, false),
+                    source = requireArguments().getString(KEY_STREAM_SOURCE),
+                    streamId = requireArguments().getString(KEY_STREAM_ID),
                 )
             }
             VIDEO -> {
@@ -2107,7 +2118,9 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
                     proxyPort = requireContext().prefs().getString(C.PROXY_PORT, null)?.toIntOrNull(),
                     proxyUser = requireContext().prefs().getString(C.PROXY_USER, null),
                     proxyPassword = requireContext().prefs().getString(C.PROXY_PASSWORD, null),
-                    enableIntegrity = requireContext().prefs().getBoolean(C.ENABLE_INTEGRITY, false)
+                    enableIntegrity = requireContext().prefs().getBoolean(C.ENABLE_INTEGRITY, false),
+                    source = requireArguments().getString(KEY_STREAM_SOURCE),
+                    streamId = requireArguments().getString(KEY_STREAM_ID),
                 )
             }
         }
@@ -2477,7 +2490,9 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
                         proxyPort = requireContext().prefs().getString(C.PROXY_PORT, null)?.toIntOrNull(),
                         proxyUser = requireContext().prefs().getString(C.PROXY_USER, null),
                         proxyPassword = requireContext().prefs().getString(C.PROXY_PASSWORD, null),
-                        enableIntegrity = requireContext().prefs().getBoolean(C.ENABLE_INTEGRITY, false)
+                        enableIntegrity = requireContext().prefs().getBoolean(C.ENABLE_INTEGRITY, false),
+                        source = requireArguments().getString(KEY_STREAM_SOURCE),
+                        streamId = requireArguments().getString(KEY_STREAM_ID),
                     )
                 }
                 viewModel.isFollowingChannel(
@@ -2567,6 +2582,7 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
         return Bundle().apply {
             putString(KEY_TYPE, STREAM)
             putString(KEY_STREAM_ID, item.id)
+            putString(KEY_STREAM_SOURCE, item.source)
             putString(KEY_CHANNEL_ID, item.channelId)
             putString(KEY_CHANNEL_LOGIN, item.channelLogin)
             putString(KEY_CHANNEL_NAME, item.channelName)
@@ -2669,6 +2685,7 @@ abstract class Media3PlayerFragment : BaseNetworkFragment(), RadioButtonDialogFr
 
         protected const val KEY_TYPE = "type"
         protected const val KEY_STREAM_ID = "streamId"
+        protected const val KEY_STREAM_SOURCE = "streamSource"
         protected const val KEY_VIDEO_ID = "videoId"
         protected const val KEY_CLIP_ID = "clipId"
         protected const val KEY_OFFLINE_VIDEO_ID = "offlineVideoId"

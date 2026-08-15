@@ -91,6 +91,7 @@ import com.github.andreyasadchy.xtra.ui.saved.downloads.DownloadsFragment
 import com.github.andreyasadchy.xtra.ui.team.TeamFragmentDirections
 import com.github.andreyasadchy.xtra.ui.top.TopStreamsFragmentDirections
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.applyTheme
 import com.github.andreyasadchy.xtra.util.getAlertDialogBuilder
@@ -528,6 +529,16 @@ class MainActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.streamToPlay.collectLatest { stream ->
+                    if (stream != null) {
+                        startStream(stream)
+                        viewModel.streamToPlay.value = null
+                    }
+                }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.user.collectLatest { user ->
                     if (user != null) {
                         if (!user.id.isNullOrBlank() || !user.login.isNullOrBlank()) {
@@ -703,6 +714,13 @@ class MainActivity : AppCompatActivity() {
                 val url = intent.data?.toString()
                 if (url != null) {
                     when {
+                        url.contains("kick.com/", ignoreCase = true) -> {
+                            val path = url.substringAfter("kick.com/", "").substringBefore("?").trim('/')
+                            val slug = path.substringBefore('/').takeIf { it.isNotBlank() }
+                            if (!slug.isNullOrBlank() && !KickApiHelper.isReservedKickPath(slug)) {
+                                viewModel.loadKickChannel(Uri.decode(slug))
+                            }
+                        }
                         url.contains("twitch.tv/videos/") -> {
                             val id = url.substringAfter("twitch.tv/videos/").takeIf { it.isNotBlank() }?.let { it.substringBefore("?", it.substringBefore("/")) }
                             val offset = url.substringAfter("?t=", "").takeIf { it.isNotBlank() }?.let { TwitchApiHelper.getDuration(it).toLong() * 1000 }

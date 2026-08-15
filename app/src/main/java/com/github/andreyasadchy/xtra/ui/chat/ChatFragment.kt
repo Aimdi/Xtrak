@@ -823,7 +823,8 @@ class ChatFragment : BaseNetworkFragment(), MessageClickedDialog.OnButtonClickLi
                     channelId,
                     channelLogin,
                     args.getString(KEY_CHANNEL_NAME),
-                    args.getString(KEY_STREAM_ID)
+                    args.getString(KEY_STREAM_ID),
+                    args.getString(KEY_STREAM_SOURCE),
                 )
             } else {
                 val videoId = args.getString(KEY_VIDEO_ID)
@@ -1295,12 +1296,13 @@ class ChatFragment : BaseNetworkFragment(), MessageClickedDialog.OnButtonClickLi
         private const val KEY_CHANNEL_LOGIN = "channel_login"
         private const val KEY_CHANNEL_NAME = "channel_name"
         private const val KEY_STREAM_ID = "streamId"
+        private const val KEY_STREAM_SOURCE = "streamSource"
         private const val KEY_VIDEO_ID = "videoId"
         private const val KEY_CREATED_AT = "createdAt"
         private const val KEY_CHAT_URL = "chatUrl"
         private const val KEY_START_TIME = "startTime"
 
-        fun newInstance(channelId: String?, channelLogin: String?, channelName: String?, streamId: String?): ChatFragment {
+        fun newInstance(channelId: String?, channelLogin: String?, channelName: String?, streamId: String?, source: String? = null): ChatFragment {
             return ChatFragment().apply {
                 arguments = Bundle().apply {
                     putBoolean(KEY_IS_LIVE, true)
@@ -1308,6 +1310,7 @@ class ChatFragment : BaseNetworkFragment(), MessageClickedDialog.OnButtonClickLi
                     putString(KEY_CHANNEL_LOGIN, channelLogin)
                     putString(KEY_CHANNEL_NAME, channelName)
                     putString(KEY_STREAM_ID, streamId)
+                    putString(KEY_STREAM_SOURCE, source)
                 }
             }
         }

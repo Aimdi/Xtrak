@@ -16,9 +16,12 @@ import coil3.request.transformations
 import coil3.transform.CircleCropTransformation
 import com.github.andreyasadchy.xtra.R
 import com.github.andreyasadchy.xtra.databinding.FragmentSearchChannelsListItemBinding
+import com.github.andreyasadchy.xtra.model.ui.Stream
 import com.github.andreyasadchy.xtra.model.ui.User
 import com.github.andreyasadchy.xtra.ui.channel.ChannelPagerFragmentDirections
+import com.github.andreyasadchy.xtra.ui.main.MainActivity
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.prefs
 
@@ -50,14 +53,27 @@ class ChannelSearchAdapter(
                 if (item != null) {
                     val context = fragment.requireContext()
                     root.setOnClickListener {
-                        fragment.findNavController().navigate(
-                            ChannelPagerFragmentDirections.actionGlobalChannelPagerFragment(
-                                channelId = item.id,
-                                channelLogin = item.login,
-                                channelName = item.name,
-                                channelImage = item.profileImage,
+                        if (item.isKick && item.isLive == true) {
+                            (fragment.requireActivity() as MainActivity).startStream(
+                                Stream(
+                                    id = KickApiHelper.kickStreamId(item.id ?: item.login),
+                                    channelId = item.id,
+                                    channelLogin = item.login,
+                                    channelName = item.name,
+                                    channelImageURL = item.profileImageURL,
+                                    source = C.KICK,
+                                )
                             )
-                        )
+                        } else {
+                            fragment.findNavController().navigate(
+                                ChannelPagerFragmentDirections.actionGlobalChannelPagerFragment(
+                                    channelId = item.id,
+                                    channelLogin = item.login,
+                                    channelName = item.name,
+                                    channelImage = item.profileImage,
+                                )
+                            )
+                        }
                     }
                     if (item.profileImage != null) {
                         userImage.visibility = View.VISIBLE

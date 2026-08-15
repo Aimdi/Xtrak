@@ -1,6 +1,8 @@
 package com.github.andreyasadchy.xtra.model.ui
 
 import android.os.Parcelable
+import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import kotlinx.parcelize.Parcelize
 
@@ -19,10 +21,22 @@ class Stream(
     var createdAt: String? = null,
     var viewerCount: Int? = null,
     val tags: List<String>? = null,
+    val source: String? = C.TWITCH,
 ) : Parcelable {
 
+    val isKick: Boolean
+        get() = KickApiHelper.isKickSource(source, id)
+
     val channelImage: String?
-        get() = TwitchApiHelper.getProfileImage(channelImageURL)
+        get() = if (isKick || KickApiHelper.isKickCdnUrl(channelImageURL)) {
+            channelImageURL
+        } else {
+            TwitchApiHelper.getProfileImage(channelImageURL)
+        }
     val thumbnail: String?
-        get() = TwitchApiHelper.getStreamThumbnail(thumbnailURL)
+        get() = if (isKick || KickApiHelper.isKickCdnUrl(thumbnailURL)) {
+            thumbnailURL
+        } else {
+            TwitchApiHelper.getStreamThumbnail(thumbnailURL)
+        }
 }

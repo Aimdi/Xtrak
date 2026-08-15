@@ -6,6 +6,8 @@ import com.github.andreyasadchy.xtra.model.ui.Game
 import com.github.andreyasadchy.xtra.model.ui.Tag
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
+import com.github.andreyasadchy.xtra.repository.KickWebsiteSearchMapper
 import com.github.andreyasadchy.xtra.util.C
 
 class GamesDataSource(
@@ -14,6 +16,7 @@ class GamesDataSource(
     private val graphQLRepository: GraphQLRepository,
     private val helixHeaders: Map<String, String>,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     private val enableIntegrity: Boolean,
     private val networkLibrary: String?,
 ) : PagingSource<Int, Game>() {
@@ -28,19 +31,26 @@ class GamesDataSource(
                 LoadResult.Error(e)
             }
         } else {
+            val kickGames = runCatching {
+                kickRepository.getSubcategories(page = 1, limit = params.loadSize).data.map(KickWebsiteSearchMapper::toGame)
+            }.getOrDefault(emptyList())
             try {
                 api = C.GQL
-                loadFromApi(params)
+                mergeKick(loadFromApi(params), kickGames)
             } catch (e: Exception) {
                 try {
                     api = C.GQL_PERSISTED_QUERY
-                    loadFromApi(params)
+                    mergeKick(loadFromApi(params), kickGames)
                 } catch (e: Exception) {
                     try {
                         api = C.HELIX
-                        loadFromApi(params)
+                        mergeKick(loadFromApi(params), kickGames)
                     } catch (e: Exception) {
-                        LoadResult.Error(e)
+                        if (kickGames.isNotEmpty()) {
+                            LoadResult.Page(data = kickGames, prevKey = null, nextKey = null)
+                        } else {
+                            LoadResult.Error(e)
+                        }
                     }
                 }
             }
@@ -149,6 +159,13 @@ class GamesDataSource(
                 (params.key ?: 1) + 1
             } else null
         )
+    }
+
+    private fun mergeKick(result: LoadResult<Int, Game>, kickGames: List<Game>): LoadResult<Int, Game> {
+        if (kickGames.isEmpty() || result !is LoadResult.Page) return result
+        val existing = result.data.mapNotNull { it.slug?.lowercase() }.toSet()
+        val extra = kickGames.filter { it.slug?.lowercase() !in existing }
+        return result.copy(data = extra + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Game>): Int? {

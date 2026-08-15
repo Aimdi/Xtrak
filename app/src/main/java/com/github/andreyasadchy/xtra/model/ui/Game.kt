@@ -1,6 +1,8 @@
 package com.github.andreyasadchy.xtra.model.ui
 
 import android.os.Parcelable
+import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import kotlinx.parcelize.Parcelize
 
@@ -18,8 +20,16 @@ class Game(
     val vodDuration: Int? = null,
     var accountFollow: Boolean = false,
     val localFollow: Boolean = false,
+    val source: String? = C.TWITCH,
 ) : Parcelable {
 
+    val isKick: Boolean
+        get() = KickApiHelper.isKickSource(source)
+
     val boxArt: String?
-        get() = TwitchApiHelper.getGameBoxArt(boxArtURL)
+        get() = if (isKick || KickApiHelper.isKickCdnUrl(boxArtURL)) {
+            boxArtURL
+        } else {
+            TwitchApiHelper.getGameBoxArt(boxArtURL)
+        }
 }

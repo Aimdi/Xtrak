@@ -34,8 +34,11 @@ import com.github.andreyasadchy.xtra.model.chat.VideoChatMessage
 import com.github.andreyasadchy.xtra.model.ui.TranslatedChannel
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.repository.PlayerRepository
+import com.github.andreyasadchy.xtra.model.kick.KickChatMessageEvent
 import com.github.andreyasadchy.xtra.util.C
+import com.github.andreyasadchy.xtra.util.KickApiHelper
 import com.github.andreyasadchy.xtra.util.TwitchApiHelper
 import com.github.andreyasadchy.xtra.util.chat.ChatReadIRCSocket
 import com.github.andreyasadchy.xtra.util.chat.ChatReadWebSocket
@@ -45,6 +48,7 @@ import com.github.andreyasadchy.xtra.util.chat.ChatWriteWebSocket
 import com.github.andreyasadchy.xtra.util.chat.EventSubUtils
 import com.github.andreyasadchy.xtra.util.chat.EventSubWebSocket
 import com.github.andreyasadchy.xtra.util.chat.HermesWebSocket
+import com.github.andreyasadchy.xtra.util.chat.KickPusherChatWebSocket
 import com.github.andreyasadchy.xtra.util.chat.PubSubUtils
 import com.github.andreyasadchy.xtra.util.chat.STVEventApiUtils
 import com.github.andreyasadchy.xtra.util.chat.STVEventApiWebSocket
@@ -77,6 +81,7 @@ class ChatViewModel(
     private val applicationContext: Context,
     private val graphQLRepository: GraphQLRepository,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     private val playerRepository: PlayerRepository,
     private val trustManager: Lazy<X509TrustManager>,
     private val json: Json,
@@ -91,6 +96,7 @@ class ChatViewModel(
     private var chatReadJob: Job? = null
     private var chatWriteJob: Job? = null
     private var eventSub: EventSubWebSocket? = null
+    private var kickPusher: KickPusherChatWebSocket? = null
     private var hermesWebSocket: HermesWebSocket? = null
     private var pubSubJob: Job? = null
     private var stvEventApi: STVEventApiWebSocket? = null
@@ -162,10 +168,15 @@ class ChatViewModel(
     val autoCompleteList = mutableListOf<Any?>()
     private val chatters = ConcurrentHashMap<String, Chatter>()
 
-    fun startLive(networkLibrary: String?, recentMessagesUrl: String?, channelId: String?, channelLogin: String?, channelName: String?, streamId: String?) {
-        if (chatReadIRCSocket == null && chatReadWebSocket == null && eventSub == null && channelLogin != null) {
+    fun startLive(networkLibrary: String?, recentMessagesUrl: String?, channelId: String?, channelLogin: String?, channelName: String?, streamId: String?, source: String? = null) {
+        if (chatReadIRCSocket == null && chatReadWebSocket == null && eventSub == null && kickPusher == null && channelLogin != null) {
             messageLimit = applicationContext.prefs().getInt(C.CHAT_LIMIT, 600)
             this.streamId = streamId
+            if (KickApiHelper.isKickSource(source, streamId)) {
+                startKickLiveChat(channelId, channelLogin)
+                addChatter(channelName)
+                return
+            }
             startLiveChat(channelId, channelLogin)
             addChatter(channelName)
             loadEmotes(channelId, channelLogin)
@@ -988,6 +999,48 @@ class ChatViewModel(
         }
     }
 
+    private fun startKickLiveChat(channelId: String?, channelLogin: String) {
+        stopLiveChat()
+        started = true
+        viewModelScope.launch {
+            try {
+                val channel = kickRepository.getChannel(channelLogin)
+                val chatroomId = channel.chatroom?.id?.toString()?.takeIf { it.isNotBlank() } ?: return@launch
+                kickPusher = KickPusherChatWebSocket(
+                    chatroomId = chatroomId,
+                    channelId = channel.id?.toString() ?: channelId,
+                    trustManager = trustManager,
+                    listener = object : KickPusherChatWebSocket.Listener {
+                        override suspend fun onChatEvent(eventName: String, channelName: String?, messageJson: String) {
+                            if (eventName.contains("ChatMessageEvent", ignoreCase = true) ||
+                                eventName.contains("MessageSent", ignoreCase = true)
+                            ) {
+                                parseKickChatMessage(messageJson)?.let { onMessage(it) }
+                            }
+                        }
+                    }
+                )
+                chatReadJob = kickPusher?.connect(viewModelScope)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun parseKickChatMessage(messageJson: String): ChatMessage? {
+        val event = runCatching { json.decodeFromString<KickChatMessageEvent>(messageJson) }.getOrNull()
+        val text = event?.content ?: event?.message
+        if (text.isNullOrBlank() && event?.sender == null) return null
+        return ChatMessage(
+            type = ChatMessage.USER_MESSAGE,
+            id = event?.id,
+            userId = event?.sender?.id?.toString(),
+            userLogin = event?.sender?.slug ?: event?.sender?.username,
+            userName = event?.sender?.username,
+            message = text,
+            color = event?.sender?.identity?.color,
+        )
+    }
+
     fun startLiveChat(channelId: String?, channelLogin: String) {
         stopLiveChat()
         started = true
@@ -1104,6 +1157,12 @@ class ChatViewModel(
     fun stopLiveChat() {
         if (started) {
             started = false
+            if (kickPusher != null) {
+                MainScope().launch(Dispatchers.IO) {
+                    kickPusher?.disconnect(chatReadJob)
+                    kickPusher = null
+                }
+            }
             if (chatReadIRCSocket != null) {
                 MainScope().launch(Dispatchers.IO) {
                     chatReadIRCSocket?.disconnect(chatReadJob)
@@ -3157,7 +3216,7 @@ class ChatViewModel(
             initializer {
                 val application = (this[APPLICATION_KEY] as XtraApp)
                 val xtraModule = application.xtraModule
-                ChatViewModel(application.applicationContext, xtraModule.graphQLRepository, xtraModule.helixRepository, xtraModule.playerRepository, xtraModule.trustManager, xtraModule.json)
+                ChatViewModel(application.applicationContext, xtraModule.graphQLRepository, xtraModule.helixRepository, xtraModule.kickRepository, xtraModule.playerRepository, xtraModule.trustManager, xtraModule.json)
             }
         }
     }

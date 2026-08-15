@@ -5,6 +5,7 @@ import androidx.paging.PagingState
 import com.github.andreyasadchy.xtra.model.ui.User
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.util.C
 
 class SearchChannelsDataSource(
@@ -13,6 +14,7 @@ class SearchChannelsDataSource(
     private val graphQLRepository: GraphQLRepository,
     private val helixHeaders: Map<String, String>,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     private val enableIntegrity: Boolean,
     private val networkLibrary: String?,
 ) : PagingSource<Int, User>() {
@@ -34,19 +36,24 @@ class SearchChannelsDataSource(
                     LoadResult.Error(e)
                 }
             } else {
+                val kickUsers = runCatching { kickRepository.searchChannels(query) }.getOrDefault(emptyList())
                 try {
                     api = C.GQL
-                    loadFromApi(params)
+                    mergeKick(loadFromApi(params), kickUsers)
                 } catch (e: Exception) {
                     try {
                         api = C.GQL_PERSISTED_QUERY
-                        loadFromApi(params)
+                        mergeKick(loadFromApi(params), kickUsers)
                     } catch (e: Exception) {
                         try {
                             api = C.HELIX
-                            loadFromApi(params)
+                            mergeKick(loadFromApi(params), kickUsers)
                         } catch (e: Exception) {
-                            LoadResult.Error(e)
+                            if (kickUsers.isNotEmpty()) {
+                                LoadResult.Page(data = kickUsers, prevKey = null, nextKey = null)
+                            } else {
+                                LoadResult.Error(e)
+                            }
                         }
                     }
                 }
@@ -145,6 +152,13 @@ class SearchChannelsDataSource(
                 (params.key ?: 1) + 1
             } else null
         )
+    }
+
+    private fun mergeKick(result: LoadResult<Int, User>, kickUsers: List<User>): LoadResult<Int, User> {
+        if (kickUsers.isEmpty() || result !is LoadResult.Page) return result
+        val existing = result.data.mapNotNull { it.login?.lowercase() }.toSet()
+        val extra = kickUsers.filter { it.login?.lowercase() !in existing }
+        return result.copy(data = extra + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, User>): Int? {

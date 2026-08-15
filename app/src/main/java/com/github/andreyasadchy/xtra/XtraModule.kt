@@ -14,6 +14,7 @@ import com.github.andreyasadchy.xtra.repository.ChannelSortRepository
 import com.github.andreyasadchy.xtra.repository.GameSortRepository
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.repository.LocalChannelFollowsRepository
 import com.github.andreyasadchy.xtra.repository.LocalGameFollowsRepository
 import com.github.andreyasadchy.xtra.repository.NotificationsRepository
@@ -45,6 +46,8 @@ class XtraModule(application: Application) {
                 addQuicHint("7tv.io", 443, 443)
                 addQuicHint("cdn.7tv.app", 443, 443)
                 addQuicHint("api.betterttv.net", 443, 443)
+                addQuicHint("kick.com", 443, 443)
+                addQuicHint("ws-us2.pusher.com", 443, 443)
             }.build()
         } else {
             null
@@ -63,6 +66,8 @@ class XtraModule(application: Application) {
                 addQuicHint("7tv.io", 443, 443)
                 addQuicHint("cdn.7tv.app", 443, 443)
                 addQuicHint("api.betterttv.net", 443, 443)
+                addQuicHint("kick.com", 443, 443)
+                addQuicHint("ws-us2.pusher.com", 443, 443)
             }.build().also {
                 if (BuildConfig.DEBUG) {
                     it.addRequestFinishedListener(object : RequestFinishedInfo.Listener(Executors.newSingleThreadExecutor()) {
@@ -322,6 +327,10 @@ class XtraModule(application: Application) {
 
     val helixRepository by lazy {
         HelixRepository(httpEngine, cronetEngine, cronetExecutor, okHttpClient, json)
+    }
+
+    val kickRepository by lazy {
+        KickRepository(okHttpClient, json)
     }
 
     val localChannelFollowsRepository by lazy {

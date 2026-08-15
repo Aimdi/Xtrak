@@ -7,6 +7,8 @@ import com.github.andreyasadchy.xtra.graphql.type.StreamSort
 import com.github.andreyasadchy.xtra.model.ui.Stream
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
+import com.github.andreyasadchy.xtra.repository.KickWebsiteSearchMapper
 import com.github.andreyasadchy.xtra.util.C
 
 class StreamsDataSource(
@@ -19,6 +21,7 @@ class StreamsDataSource(
     private val graphQLRepository: GraphQLRepository,
     private val helixHeaders: Map<String, String>,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     private val enableIntegrity: Boolean,
     private val networkLibrary: String?,
 ) : PagingSource<Int, Stream>() {
@@ -33,19 +36,26 @@ class StreamsDataSource(
                 LoadResult.Error(e)
             }
         } else {
+            val kickStreams = runCatching {
+                kickRepository.getLivestreams(page = 1, limit = params.loadSize).data.map(KickWebsiteSearchMapper::toStream)
+            }.getOrDefault(emptyList())
             try {
                 api = C.GQL
-                loadFromApi(params)
+                mergeKick(loadFromApi(params), kickStreams)
             } catch (e: Exception) {
                 try {
                     api = C.GQL_PERSISTED_QUERY
-                    loadFromApi(params)
+                    mergeKick(loadFromApi(params), kickStreams)
                 } catch (e: Exception) {
                     try {
                         api = C.HELIX
-                        loadFromApi(params)
+                        mergeKick(loadFromApi(params), kickStreams)
                     } catch (e: Exception) {
-                        LoadResult.Error(e)
+                        if (kickStreams.isNotEmpty()) {
+                            LoadResult.Page(data = kickStreams, prevKey = null, nextKey = null)
+                        } else {
+                            LoadResult.Error(e)
+                        }
                     }
                 }
             }
@@ -181,6 +191,11 @@ class StreamsDataSource(
                 (params.key ?: 1) + 1
             } else null
         )
+    }
+
+    private fun mergeKick(result: LoadResult<Int, Stream>, kickStreams: List<Stream>): LoadResult<Int, Stream> {
+        if (kickStreams.isEmpty() || result !is LoadResult.Page) return result
+        return result.copy(data = kickStreams + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Stream>): Int? {

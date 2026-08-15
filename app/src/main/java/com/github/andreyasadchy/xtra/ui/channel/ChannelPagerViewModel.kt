@@ -18,6 +18,7 @@ import com.github.andreyasadchy.xtra.model.ui.User
 import com.github.andreyasadchy.xtra.repository.BookmarksRepository
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.repository.LocalChannelFollowsRepository
 import com.github.andreyasadchy.xtra.repository.NotificationsRepository
 import com.github.andreyasadchy.xtra.repository.OfflineVideosRepository
@@ -45,6 +46,7 @@ class ChannelPagerViewModel(
     private val notificationsRepository: NotificationsRepository,
     private val graphQLRepository: GraphQLRepository,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     private val httpEngine: Lazy<HttpEngine?>,
     private val cronetEngine: Lazy<CronetEngine?>,
     private val cronetExecutor: Lazy<ExecutorService>,
@@ -71,6 +73,7 @@ class ChannelPagerViewModel(
     fun loadStream(networkLibrary: String?, gqlHeaders: Map<String, String>, helixHeaders: Map<String, String>, enableIntegrity: Boolean) {
         if (_stream.value == null) {
             viewModelScope.launch {
+                var loadedFromTwitch = false
                 try {
                     val response = graphQLRepository.loadQueryUserChannelPage(networkLibrary, gqlHeaders, args.channelId, if (args.channelId.isNullOrBlank()) args.channelLogin else null)
                     if (enableIntegrity) {
@@ -80,6 +83,7 @@ class ChannelPagerViewModel(
                         }
                     }
                     response.data!!.user?.let {
+                        loadedFromTwitch = true
                         _stream.value = Stream(
                             id = it.stream?.id,
                             channelId = it.id,
@@ -123,6 +127,7 @@ class ChannelPagerViewModel(
                                 ids = args.channelId?.let { listOf(it) },
                                 logins = if (args.channelId.isNullOrBlank()) args.channelLogin?.let { listOf(it) } else null
                             ).data.firstOrNull()?.let {
+                                loadedFromTwitch = true
                                 _stream.value = Stream(
                                     id = it.id,
                                     channelId = it.channelId,
@@ -143,6 +148,7 @@ class ChannelPagerViewModel(
                                 ids = args.channelId?.let { listOf(it) },
                                 logins = if (args.channelId.isNullOrBlank()) args.channelLogin?.let { listOf(it) } else null
                             ).data.firstOrNull()?.let {
+                                loadedFromTwitch = true
                                 _user.value = User(
                                     id = it.id,
                                     login = it.login,
@@ -156,6 +162,12 @@ class ChannelPagerViewModel(
                         } catch (e: Exception) {
 
                         }
+                    }
+                }
+                if (!loadedFromTwitch && !args.channelLogin.isNullOrBlank()) {
+                    runCatching { kickRepository.getChannel(args.channelLogin) }.getOrNull()?.let { channel ->
+                        _stream.value = kickRepository.toStream(channel)
+                        _user.value = kickRepository.toUser(channel)
                     }
                 }
             }
@@ -458,7 +470,7 @@ class ChannelPagerViewModel(
                 val savedStateHandle = createSavedStateHandle()
                 val application = (this[APPLICATION_KEY] as XtraApp)
                 val xtraModule = application.xtraModule
-                ChannelPagerViewModel(xtraModule.localChannelFollowsRepository, xtraModule.offlineVideosRepository, xtraModule.bookmarksRepository, xtraModule.notificationsRepository, xtraModule.graphQLRepository, xtraModule.helixRepository, xtraModule.httpEngine, xtraModule.cronetEngine, xtraModule.cronetExecutor, xtraModule.okHttpClient, savedStateHandle)
+                ChannelPagerViewModel(xtraModule.localChannelFollowsRepository, xtraModule.offlineVideosRepository, xtraModule.bookmarksRepository, xtraModule.notificationsRepository, xtraModule.graphQLRepository, xtraModule.helixRepository, xtraModule.kickRepository, xtraModule.httpEngine, xtraModule.cronetEngine, xtraModule.cronetExecutor, xtraModule.okHttpClient, savedStateHandle)
             }
         }
     }

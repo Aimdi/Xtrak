@@ -5,6 +5,7 @@ import androidx.paging.PagingState
 import com.github.andreyasadchy.xtra.model.ui.Stream
 import com.github.andreyasadchy.xtra.repository.GraphQLRepository
 import com.github.andreyasadchy.xtra.repository.HelixRepository
+import com.github.andreyasadchy.xtra.repository.KickRepository
 import com.github.andreyasadchy.xtra.util.C
 
 class SearchStreamsDataSource(
@@ -13,6 +14,7 @@ class SearchStreamsDataSource(
     private val graphQLRepository: GraphQLRepository,
     private val helixHeaders: Map<String, String>,
     private val helixRepository: HelixRepository,
+    private val kickRepository: KickRepository,
     private val enableIntegrity: Boolean,
     private val networkLibrary: String?,
 ) : PagingSource<Int, Stream>() {
@@ -34,15 +36,20 @@ class SearchStreamsDataSource(
                     LoadResult.Error(e)
                 }
             } else {
+                val kickStreams = runCatching { kickRepository.searchStreams(query) }.getOrDefault(emptyList())
                 try {
                     api = C.GQL
-                    loadFromApi(params)
+                    mergeKick(loadFromApi(params), kickStreams)
                 } catch (e: Exception) {
                     try {
                         api = C.HELIX
-                        loadFromApi(params)
+                        mergeKick(loadFromApi(params), kickStreams)
                     } catch (e: Exception) {
-                        LoadResult.Error(e)
+                        if (kickStreams.isNotEmpty()) {
+                            LoadResult.Page(data = kickStreams, prevKey = null, nextKey = null)
+                        } else {
+                            LoadResult.Error(e)
+                        }
                     }
                 }
             }
@@ -129,6 +136,13 @@ class SearchStreamsDataSource(
                 (params.key ?: 1) + 1
             } else null
         )
+    }
+
+    private fun mergeKick(result: LoadResult<Int, Stream>, kickStreams: List<Stream>): LoadResult<Int, Stream> {
+        if (kickStreams.isEmpty() || result !is LoadResult.Page) return result
+        val existing = result.data.mapNotNull { it.channelLogin?.lowercase() }.toSet()
+        val extra = kickStreams.filter { it.channelLogin?.lowercase() !in existing }
+        return result.copy(data = extra + result.data)
     }
 
     override fun getRefreshKey(state: PagingState<Int, Stream>): Int? {
